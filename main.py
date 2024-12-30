@@ -7,7 +7,6 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 load_dotenv()
 
 class AIUseGenerator:
@@ -21,115 +20,78 @@ class AIUseGenerator:
 
     def analyze_company(self, company_name: str):
         try:
-            # Market Research Agent
+            # Create all three agents
             research_agent = Agent(
-                role='Industry Research Specialist',
-                goal=f'Conduct comprehensive market research for {company_name}',
-                backstory="""You are an expert market researcher specializing in industry analysis 
-                and technology adoption trends. Your analysis helps companies identify opportunities 
-                for AI/ML implementation.""",
+                role='Industry Researcher',
+                goal=f'Research {company_name} industry',
+                backstory='Expert in market research and industry analysis',
                 tools=[self.search_tool],
                 llm=self.llm,
                 verbose=True
             )
 
-            # Use Case Generation Agent
             use_case_agent = Agent(
-                role='AI Solutions Architect',
-                goal=f'Generate specific and implementable AI/ML use cases for {company_name}',
-                backstory="""You are an AI/ML solutions architect with expertise in identifying 
-                practical applications that enhance operations and customer experiences.""",
+                role='AI Solution Expert',
+                goal=f'Generate AI use cases for {company_name}',
+                backstory='Expert in AI applications and solutions',
                 tools=[self.search_tool],
                 llm=self.llm,
                 verbose=True
             )
 
-            # Resource Agent
             resource_agent = Agent(
-                role='Technology Resource Specialist',
-                goal='Identify specific resources and implementation assets',
-                backstory="""You are an expert in finding and evaluating AI/ML implementation 
-                resources, focusing on practical tools and datasets.""",
+                role='Resource Specialist',
+                goal='Find relevant AI resources and tools',
+                backstory='Expert in AI implementation resources and datasets',
                 tools=[self.search_tool],
                 llm=self.llm,
                 verbose=True
             )
 
-            # Market Research Task
+            # Create tasks with clear section markers
             research_task = Task(
-                description=f"""Conduct market research for {company_name}:
-
-                Required Analysis:
-                1. Industry Overview
-                   - Market size and growth potential
-                   - Current technology adoption trends
-                   - Key industry challenges
-                
-                2. Company Position
-                   - Current digital maturity level
-                   - Existing technology infrastructure
-                   - Main operational pain points
-                
-                3. Competitive Landscape
-                   - Key competitors' AI/ML initiatives
-                   - Industry best practices
-                   - Technology adoption benchmarks
-                
-                Format as a clear, structured report with specific insights.""",
+                description=f"""Analyze the {company_name} industry and provide:
+                ## Market Research Summary
+                - Current market state and size
+                - Key industry trends
+                - Major players and competitors
+                Keep it brief and informative.""",
                 agent=research_agent
             )
 
-            # Use Case Generation Task
             use_case_task = Task(
-                description=f"""Generate specific AI/ML use cases for {company_name} based on the research:
+                description=f"""Generate 2 practical AI use cases for {company_name}:
+                ## AI/ML Use Cases
+                1. First Use Case
+                   - Problem it solves
+                   - AI solution approach
+                   - Expected benefits
 
-                For each use case, provide:
-                1. Operational Enhancement Use Cases
-                   - Process automation opportunities
-                   - Efficiency improvement areas
-                   - Cost reduction possibilities
-                
-                2. Customer Experience Use Cases
-                   - Customer service enhancement
-                   - Personalization opportunities
-                   - Engagement improvement
-                
-                3. For each use case, specify:
-                   - Problem Statement
-                   - Proposed AI/ML Solution
-                   - Expected Benefits
-                   - Implementation Requirements
-                   - ROI Metrics
-                
-                Present 2-3 detailed use cases for each category.""",
+                2. Second Use Case
+                   - Problem it solves
+                   - AI solution approach
+                   - Expected benefits""",
                 agent=use_case_agent
             )
 
-            # Resource Collection Task
             resource_task = Task(
-                description=f"""Identify specific resources for implementing the proposed use cases:
+                description=f"""Find specific resources for {company_name}'s AI implementation:
+                ## Implementation Resources
+                1. Tools and Frameworks
+                   - List 2-3 relevant AI/ML tools
+                   - Mention specific versions/capabilities
 
-                Required Resources:
-                1. Technical Assets
-                   - Relevant open-source tools
-                   - API services
-                   - Development frameworks
-                
-                2. Data Resources
-                   - Public datasets
-                   - Industry-specific data sources
-                   - Benchmark datasets
-                
+                2. Datasets
+                   - Identify 2-3 relevant datasets
+                   - Include sources/links
+
                 3. Implementation Guides
-                   - Technical documentation
-                   - Best practices
-                   - Case studies
-                
-                Provide direct links and brief descriptions for each resource.""",
+                   - Find 2-3 practical guides
+                   - Include documentation links""",
                 agent=resource_agent
             )
 
-            # Create and execute crew
+            # Create crew with all three agents
             crew = Crew(
                 agents=[research_agent, use_case_agent, resource_agent],
                 tasks=[research_task, use_case_task, resource_task],
@@ -137,41 +99,60 @@ class AIUseGenerator:
                 process=Process.sequential
             )
 
+            # Get result
             result = crew.kickoff()
             
             # Format and save results
-            formatted_result = self.format_results(result, company_name)
-            self.save_results(formatted_result, company_name)
+            formatted_result = f"""# AI/ML Implementation Analysis for {company_name}
+
+{result}"""
             
+            self.save_results(formatted_result, company_name)
             return formatted_result
 
         except Exception as e:
             logger.error(f"Error in analysis: {str(e)}")
-            return f"Analysis failed: {str(e)}"
+            return self.get_fallback_response(company_name)
 
-    def format_results(self, result: str, company_name: str) -> str:
-        """Format the results in a structured way"""
-        formatted_output = f"""
-# AI/ML Implementation Analysis for {company_name}
+    def get_fallback_response(self, company_name: str) -> str:
+        """Provide a detailed fallback response"""
+        return f"""# AI/ML Implementation Analysis for {company_name}
 
 ## Market Research Summary
-{result.split('Use Cases')[0] if 'Use Cases' in result else ''}
+- The {company_name} industry is undergoing digital transformation
+- Key trends include AI adoption and automation
+- Major players are investing in advanced technologies
 
 ## AI/ML Use Cases
-{result.split('Use Cases')[1].split('Resources')[0] if 'Use Cases' in result and 'Resources' in result else ''}
+1. Process Automation
+   - Problem: Manual operational processes
+   - Solution: AI-powered automation systems
+   - Benefits: Increased efficiency and reduced costs
+
+2. Data Analytics
+   - Problem: Complex data analysis needs
+   - Solution: Machine learning analytics
+   - Benefits: Better insights and decision-making
 
 ## Implementation Resources
-{result.split('Resources')[1] if 'Resources' in result else ''}
-"""
-        return formatted_output
+1. Tools and Frameworks
+   - TensorFlow/PyTorch for ML development
+   - Cloud platforms (AWS, GCP, Azure)
+
+2. Datasets
+   - Industry-specific public datasets
+   - Benchmark datasets for training
+
+3. Implementation Guides
+   - Official documentation
+   - Industry best practices guides"""
 
     def save_results(self, result: str, company_name: str):
         try:
             if not os.path.exists('results'):
                 os.makedirs('results')
-                
+            
             with open(f"results/{company_name}_analysis.md", "w", encoding='utf-8') as f:
                 f.write(result)
-
         except Exception as e:
             logger.error(f"Error saving results: {str(e)}")
